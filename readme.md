@@ -1,3 +1,6 @@
+![Project Banner](./banner.png)
+
+
 # NeuroProject Manager
 
 AI-powered project management designed specifically for neurodivergent entrepreneurs with AuDHD traits.
