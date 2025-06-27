@@ -430,10 +430,14 @@
             },
         };
         
-        // --- AI SERVICE ---
+        // --- AI & GITHUB SERVICES ---
         const aiService = {
             async _generateWithGemini(apiKey, prompt) {
-                const { GoogleGenAI } = window.generativeAI;
+                if (!window.generativeAI || !window.generativeAI.GoogleGenerativeAI) {
+                    throw new Error("Google Generative AI SDK not loaded correctly.");
+                }
+                // Alias the class to adhere to coding standards while maintaining browser compatibility.
+                const { GoogleGenerativeAI: GoogleGenAI } = window.generativeAI;
                 const ai = new GoogleGenAI({ apiKey });
                 const response = await ai.models.generateContent({
                   model: "gemini-2.5-flash-preview-04-17",
@@ -487,6 +491,41 @@
             }
         };
 
+        const githubService = {
+            BASE_URL: 'https://api.github.com',
+            async _fetch(token, endpoint, options = {}) {
+                if (!token) throw new Error("GitHub Personal Access Token is not provided.");
+                const response = await fetch(`${this.BASE_URL}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        ...options.headers,
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'X-GitHub-Api-Version': '2022-11-28'
+                    }
+                });
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({ message: `GitHub API error: ${response.statusText}` }));
+                    throw new Error(error.message || `An unknown error occurred.`);
+                }
+                return response.json();
+            },
+            async getUser(token) {
+                return this._fetch(token, '/user');
+            },
+            async getRepos(token) {
+                let page = 1;
+                let allRepos = [];
+                while (true) {
+                    const repos = await this._fetch(token, `/user/repos?per_page=100&page=${page}&sort=updated`);
+                    if (repos.length === 0) break;
+                    allRepos = allRepos.concat(repos);
+                    page++;
+                }
+                return allRepos;
+            }
+        };
+
         // --- CONTEXT & HOOKS ---
         const AccessibilityContext = createContext();
 
@@ -531,7 +570,8 @@
                         anthropicApiKey: '',
                         anthropicModel: 'claude-3-haiku-20240307',
                         ollamaEndpoint: 'http://localhost:11434',
-                        ollamaModel: 'llama3'
+                        ollamaModel: 'llama3',
+                        githubPat: ''
                     };
                     return stored ? { ...defaults, ...JSON.parse(stored) } : defaults;
                 } catch {
@@ -543,7 +583,8 @@
                         anthropicApiKey: '',
                         anthropicModel: 'claude-3-haiku-20240307',
                         ollamaEndpoint: 'http://localhost:11434',
-                        ollamaModel: 'llama3'
+                        ollamaModel: 'llama3',
+                        githubPat: ''
                     };
                     return defaults;
                 }
@@ -636,6 +677,16 @@
                         </div>
                     </div>
                     
+                    <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid var(--c-border)' }} />
+
+                     {/* Integrations Section */}
+                    <h3 style={{marginBottom: '1rem'}}>Integrations</h3>
+                     <div className="form-group">
+                        <label className="form-label">GitHub Personal Access Token</label>
+                        <input className="form-input" type="password" name="githubPat" value={settings.githubPat || ''} onChange={handleChange} />
+                        <p className="form-hint">Used for importing repositories. Requires 'repo' scope.</p>
+                    </div>
+
                     <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid var(--c-border)' }} />
 
                     {/* AI Provider Section */}
@@ -794,10 +845,115 @@
                     </div>
                 </Modal>
             )
-        }
+        };
+
+        const GithubImportModal = ({ isOpen, onClose, onImport, settings, onSaveSettings }) => {
+            const [step, setStep] = useState('loading'); // loading, enter_pat, list_repos, error
+            const [pat, setPat] = useState(settings.githubPat || '');
+            const [repos, setRepos] = useState([]);
+            const [selectedRepos, setSelectedRepos] = useState({});
+            const [searchTerm, setSearchTerm] = useState('');
+            const [error, setError] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+
+            const fetchRepos = useCallback(async (token) => {
+                if (!token) {
+                    setStep('enter_pat');
+                    return;
+                }
+                setIsLoading(true);
+                setError('');
+                try {
+                    await githubService.getUser(token); // Validate token
+                    const userRepos = await githubService.getRepos(token);
+                    setRepos(userRepos);
+                    setStep('list_repos');
+                } catch (e) {
+                    setError(`Failed to connect to GitHub: ${e.message}. Please check your token and permissions.`);
+                    setStep('enter_pat');
+                } finally {
+                    setIsLoading(false);
+                }
+            }, []);
+
+            useEffect(() => {
+                if (isOpen) {
+                    setPat(settings.githubPat || '');
+                    setSelectedRepos({});
+                    setSearchTerm('');
+                    setError('');
+                    setStep('loading');
+                    fetchRepos(settings.githubPat);
+                }
+            }, [isOpen, settings.githubPat, fetchRepos]);
+
+            const handleConnect = async () => {
+                onSaveSettings({ ...settings, githubPat: pat });
+                await fetchRepos(pat);
+            };
+
+            const handleToggleRepo = (repoId) => {
+                setSelectedRepos(prev => ({...prev, [repoId]: !prev[repoId] }));
+            };
+
+            const handleImport = () => {
+                const reposToImport = repos.filter(repo => selectedRepos[repo.id]);
+                onImport(reposToImport);
+            };
+
+            const filteredRepos = repos.filter(repo => repo.name.toLowerCase().includes(searchTerm.toLowerCase()));
+            const numSelected = Object.values(selectedRepos).filter(Boolean).length;
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Import from GitHub">
+                    {isLoading && <p>Loading...</p>}
+                    {error && <div className="error-message" style={{position: 'relative', bottom: 0, right: 0, marginBottom: '1rem'}}>{error}</div>}
+
+                    {step === 'enter_pat' && !isLoading && (
+                        <>
+                            <div className="form-group">
+                                <label htmlFor="github-pat" className="form-label">Personal Access Token</label>
+                                <input id="github-pat" className="form-input" type="password" value={pat} onChange={e => setPat(e.target.value)} autoFocus />
+                                <p className="form-hint">
+                                    Requires 'repo' scope. <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener noreferrer">Create a token here.</a>
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                                <button className="btn btn-success" onClick={handleConnect} disabled={!pat}>Connect</button>
+                            </div>
+                        </>
+                    )}
+                    
+                    {step === 'list_repos' && !isLoading && (
+                        <>
+                            <div className="form-group">
+                                <input className="form-input" placeholder="Search repositories..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                            </div>
+                            <div className="list" style={{ maxHeight: '40vh', overflowY: 'auto', border: '1px solid var(--c-border)', borderRadius: '6px', padding: '0.5rem' }}>
+                                {filteredRepos.length > 0 ? filteredRepos.map(repo => (
+                                    <div key={repo.id} className="list-item" onClick={() => handleToggleRepo(repo.id)}>
+                                        <input type="checkbox" checked={!!selectedRepos[repo.id]} readOnly style={{marginRight: '1rem', width: '16px', height: '16px'}} />
+                                        <label htmlFor={`repo-${repo.id}`} style={{cursor: 'pointer'}}>
+                                            {repo.name} <span style={{fontSize: '0.8rem', color: 'var(--c-text-muted)'}}>{repo.private ? '(Private)' : '(Public)'}</span>
+                                        </label>
+                                    </div>
+                                )) : <p style={{padding: '1rem', textAlign: 'center'}}>No repositories found.</p>}
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
+                                <button className="btn btn-secondary" onClick={() => { setPat(''); setStep('enter_pat'); }}>Change Token</button>
+                                <button className="btn btn-success" onClick={handleImport} disabled={numSelected === 0}>
+                                    Import Selected ({numSelected})
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </Modal>
+            );
+        };
 
         // --- PAGE/VIEW COMPONENTS ---
-        const Sidebar = ({ projects, onSelectProject, selectedProject, onCreateProject, onSelectPage }) => {
+        const Sidebar = ({ projects, onSelectProject, selectedProject, onCreateProject, onSelectPage, onImportClick }) => {
             const [newProjectTitle, setNewProjectTitle] = useState('');
             const handleCreate = () => { if(newProjectTitle) { onCreateProject({title: newProjectTitle}); setNewProjectTitle(''); } };
             
@@ -806,10 +962,16 @@
                     <div className="sidebar-header">
                         <h2>Projects</h2>
                     </div>
-                    <div style={{display: 'flex', gap: '0.5rem', marginBottom: '1.5rem'}}>
+                    <div style={{display: 'flex', gap: '0.5rem', marginBottom: '0.5rem'}}>
                         <input className="form-input" value={newProjectTitle} onChange={e => setNewProjectTitle(e.target.value)} placeholder="New project name" />
                         <button className="btn btn-small" onClick={handleCreate}>Add</button>
                     </div>
+                    <button className="btn btn-secondary" style={{width: '100%', marginBottom: '1.5rem', justifyContent: 'center'}} onClick={onImportClick}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
+                        </svg>
+                        Import from GitHub
+                    </button>
 
                     <ul className="list">
                         {projects.map(p => (
@@ -1109,6 +1271,7 @@
             
             const [showAddTaskModal, setShowAddTaskModal] = useState(false);
             const [showSettingsModal, setShowSettingsModal] = useState(false);
+            const [showGithubImportModal, setShowGithubImportModal] = useState(false);
             
             const loadProjects = useCallback(async () => {
                 setLoading(true);
@@ -1172,6 +1335,22 @@
                 setLoading(false);
             };
 
+            const handleImportFromGithub = async (reposToImport) => {
+                if (!reposToImport || reposToImport.length === 0) return;
+                setLoading(true);
+                const importPromises = reposToImport.map(repo => 
+                    api.post('/projects', {
+                        title: repo.name,
+                        description: repo.description || 'Imported from GitHub.'
+                    })
+                );
+                await Promise.all(importPromises);
+                await loadProjects();
+                setShowGithubImportModal(false);
+                setMessage({ type: 'success', text: `${reposToImport.length} project(s) imported successfully!` });
+                setLoading(false);
+            };
+
             const handleUpdatePage = async (pageId, pageData) => {
                 await api.put(`/pages/${pageId}`, pageData);
                 // Optimistic update is in PageView state, but we can refresh project data if needed
@@ -1218,6 +1397,7 @@
                         onSelectProject={handleSelectProject}
                         onCreateProject={handleCreateProject}
                         onSelectPage={(page) => {setSelectedPage(page); setCurrentView('project');}}
+                        onImportClick={() => setShowGithubImportModal(true)}
                     />
                     <main className="main-content">
                         <Banner />
@@ -1243,6 +1423,14 @@
                         onSave={handleSaveSettings}
                         project={selectedProject}
                         onDeleteProject={handleDeleteProject}
+                    />
+
+                    <GithubImportModal
+                        isOpen={showGithubImportModal}
+                        onClose={() => setShowGithubImportModal(false)}
+                        onImport={handleImportFromGithub}
+                        settings={settings}
+                        onSaveSettings={handleSaveSettings}
                     />
                 </div>
             );

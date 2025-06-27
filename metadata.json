@@ -1,5 +1,6 @@
 {
   "name": "NeuroNote",
   "description": "AI-powered project management designed specifically for neurodivergent entrepreneurs with AuDHD traits.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "prompt": ""
 }

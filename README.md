@@ -1,3 +1,4 @@
+
 # NeuroProject Manager 🧠
 
 > An AI-powered project management application designed from the ground up to support the cognitive strengths and challenges of neurodivergent users, particularly those with AuDHD (Autism + ADHD).
