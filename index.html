@@ -1,0 +1,1264 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroProject Manager</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="module">
+        // This is a workaround to make @google/genai work in the browser
+        // In a real app, you'd use a bundler like Webpack or Vite
+        window.process = { env: { API_KEY: "PALM_API_KEY" } }; // This is now a fallback, settings are preferred.
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@google/generative-ai/dist/index.min.js"></script>
+
+    <style>
+        :root {
+            --c-primary: #6B8CAE; /* Muted Blue */
+            --c-primary-hover: #597d9e;
+            --c-secondary: #8a8a8a;
+            --c-secondary-hover: #6c6c6c;
+            --c-success: #82C09A; /* Soft Green */
+            --c-success-hover: #69a380;
+            --c-danger: #e57373;
+            --c-danger-hover: #d32f2f;
+            --c-text: #1e293b;
+            --c-text-muted: #6b7280;
+            --c-bg: #f8fafc;
+            --c-bg-alt: #f1f5f9;
+            --c-bg-card: #ffffff;
+            --c-border: #e2e8f0;
+            --c-focus: #fbbf24;
+            --font-size: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--c-bg);
+            color: var(--c-text);
+            line-height: 1.6;
+            font-size: var(--font-size);
+        }
+
+        [data-contrast="high"] {
+            --c-bg: #000000;
+            --c-bg-card: #111111;
+            --c-bg-alt: #222222;
+            --c-text: #ffffff;
+            --c-text-muted: #cccccc;
+            --c-border: #555555;
+            --c-primary: #38bdf8;
+            --c-primary-hover: #0ea5e9;
+            --c-success: #4ade80;
+            --c-danger: #fb7185;
+        }
+        
+        [data-motion="reduced"] * {
+            transition-duration: 0.01ms !important;
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            scroll-behavior: auto !important;
+        }
+
+        [data-font-size="small"] { --font-size: 14px; }
+        [data-font-size="medium"] { --font-size: 16px; }
+        [data-font-size="large"] { --font-size: 18px; }
+
+        .app {
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* Banner Styles */
+        .banner {
+            width: 100%;
+            background: linear-gradient(135deg, var(--c-primary) 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .banner h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .banner p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 320px;
+            background: var(--c-bg-card);
+            border-right: 1px solid var(--c-border);
+            padding: 1.5rem;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .sidebar h2 {
+            color: #475569;
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+        }
+        
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .sidebar-header h2 {
+            margin: 0;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            padding: 0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-area {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem 2rem;
+            width: 100%;
+            flex: 1;
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--c-bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid var(--c-border);
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+        
+        .card h3 {
+            margin-bottom: 1rem;
+        }
+
+        /* Button Styles */
+        .btn {
+            background: var(--c-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: var(--c-primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary { background: var(--c-secondary); }
+        .btn-secondary:hover:not(:disabled) { background: var(--c-secondary-hover); }
+        .btn-success { background: var(--c-success); }
+        .btn-success:hover:not(:disabled) { background: var(--c-success-hover); }
+        .btn-danger { background-color: var(--c-danger); }
+        .btn-danger:hover:not(:disabled) { background-color: var(--c-danger-hover); }
+        .btn-small { padding: 0.5rem 1rem; font-size: 0.875rem; }
+        .btn:disabled { background-color: #d1d5db; cursor: not-allowed; }
+
+        /* Form Styles */
+        .form-group { margin-bottom: 1rem; }
+        .form-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--c-text); }
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--c-border);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease;
+            background-color: var(--c-bg-card);
+            color: var(--c-text);
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--c-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-primary) 20%, transparent); }
+        .form-textarea { min-height: 100px; resize: vertical; font-family: inherit; }
+        .form-hint { font-size: 0.8rem; color: var(--c-text-muted); margin-top: 0.25rem; }
+
+        /* List Styles */
+        .list { list-style: none; margin: 0; padding: 0; }
+        .list-item { display: flex; align-items: center; padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 0.5rem; cursor: pointer; transition: all 0.2s ease; border: 1px solid transparent; }
+        .list-item:hover { background: var(--c-bg-alt); border-color: var(--c-border); }
+        .list-item.active { background: color-mix(in srgb, var(--c-primary) 10%, transparent); border-color: var(--c-primary); color: var(--c-primary); font-weight: 600; }
+        .folder > .list-item { font-weight: 500; }
+        .page { padding-left: 2rem; }
+        
+        /* Task List Styles */
+        .task-list { margin-top: 1rem; }
+        .task-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--c-bg-alt); border-radius: 6px; margin-bottom: 0.5rem; }
+        .task-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--c-primary); cursor: pointer; }
+        .task-item span.completed { text-decoration: line-through; color: var(--c-text-muted); }
+        .subtask-list { margin-top: 1rem; border-left: 2px solid var(--c-border); padding-left: 1rem;}
+
+        /* Welcome Screen */
+        .welcome { text-align: center; padding: 3rem 2rem; }
+        .welcome h2 { font-size: 2rem; color: var(--c-text); margin-bottom: 1rem;}
+        .welcome p { font-size: 1.1rem; color: var(--c-text-muted); max-width: 600px; margin: 0 auto; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin: 3rem 0; }
+        .feature-card { background: var(--c-bg-card); padding: 2rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-left: 4px solid var(--c-primary); }
+        .feature-card h3 { color: var(--c-text); margin-bottom: 1rem; }
+
+        /* Project Overview */
+        .project-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+        .project-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+        .metric { background: var(--c-bg-alt); padding: 1rem; border-radius: 8px; text-align: center; }
+        .metric-value { font-size: 1.5rem; font-weight: 600; color: var(--c-primary); }
+        .metric-label { font-size: 0.875rem; color: var(--c-text-muted); margin-top: 0.25rem; }
+        
+        /* Modal Styles */
+        .modal-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 10, 10, 0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: var(--c-bg-card); padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .modal-header h2 { font-size: 1.5rem; color: var(--c-text); }
+        .modal-close-button { background: none; border: none; font-size: 2rem; cursor: pointer; color: var(--c-text-muted); line-height: 1; }
+
+        /* Kanban Board Styles */
+        .kanban-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; align-items: start; }
+        .kanban-column { background: var(--c-bg-alt); border-radius: 8px; padding: 1rem; height: 100%; }
+        .kanban-column-title { font-weight: 600; color: #475569; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--c-border); }
+        .kanban-task-card { background: var(--c-bg-card); padding: 1rem; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 0.75rem; }
+        .kanban-task-card p { margin-bottom: 0.75rem; }
+        .kanban-task-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+        
+        /* Quick Actions */
+        .action-group { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .view-switcher { display: inline-flex; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden; }
+        .view-switcher button { background: var(--c-bg-card); color: var(--c-text); border: none; padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.2s; border-left: 1px solid #d1d5db; margin: 0; border-radius: 0; }
+        .view-switcher button:first-child { border-left: none; }
+        .view-switcher button:hover { background: var(--c-bg-alt); }
+        .view-switcher button.active { background: color-mix(in srgb, var(--c-primary) 15%, transparent); color: var(--c-primary); font-weight: 600; }
+
+        /* Progress Dashboard */
+        .progress-dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .progress-bar-container { width: 100%; background-color: var(--c-border); border-radius: 8px; height: 20px; overflow: hidden; margin-bottom: 0.5rem; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--c-primary), color-mix(in srgb, var(--c-primary) 70%, white)); border-radius: 8px; transition: width 0.5s ease-in-out; text-align: right; color: white; font-size: 12px; line-height: 20px; padding-right: 8px; }
+        .progress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .ai-insight-card { background: linear-gradient(135deg, color-mix(in srgb, var(--c-primary) 10%, white), color-mix(in srgb, var(--c-success) 10%, white)); border-left: 4px solid var(--c-primary); }
+        .ai-insight-card h3 { color: var(--c-primary); }
+        .win-wall-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: color-mix(in srgb, var(--c-success) 15%, transparent); border-radius: 6px; margin-bottom: 0.5rem; color: var(--c-success-hover); }
+        
+        /* Bar Chart */
+        .bar-chart { width: 100%; }
+        .bar-chart-item { display: flex; align-items: center; margin-bottom: 0.75rem; gap: 1rem; }
+        .bar-chart-label { flex-shrink: 0; width: 80px; font-size: 0.875rem; color: var(--c-text-muted); }
+        .bar-chart-bar-container { flex-grow: 1; background: var(--c-border); border-radius: 4px; }
+        .bar-chart-bar { height: 20px; border-radius: 4px; transition: width 0.5s ease-in-out; display: flex; align-items: center; justify-content: flex-end; color: white; font-size: 12px; padding-right: 6px; }
+
+        /* Danger Zone */
+        .danger-zone { border: 2px solid var(--c-danger); border-radius: 8px; padding: 1rem; margin-top: 1.5rem; background-color: color-mix(in srgb, var(--c-danger) 10%, transparent); }
+        .danger-zone h3 { color: var(--c-danger-hover); }
+        .danger-zone p { color: var(--c-danger-hover); margin: 0.5rem 0 1rem; font-size: 0.9rem; }
+
+        /* Accessibility Toggle Switch */
+        .toggle-switch { display: flex; align-items: center; gap: 0.75rem; }
+        .toggle-switch label { font-weight: normal; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--c-primary); }
+        input:focus + .slider { box-shadow: 0 0 1px var(--c-primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* General Styles */
+        .loading { opacity: 0.6; pointer-events: none; }
+        .success-message { position: fixed; bottom: 20px; right: 20px; background: #d1fae5; color: #065f46; padding: 0.75rem 1rem; border-radius: 6px; border-left: 4px solid #10b981; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1001; }
+        .error-message { position: fixed; bottom: 20px; right: 20px; background: #fee2e2; color: #991b1b; padding: 0.75rem 1rem; border-radius: 6px; border-left: 4px solid #ef4444; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1001;}
+        .status-indicator { font-size: 0.8rem; color: var(--c-text-muted); font-style: italic; }
+
+        @media (max-width: 768px) {
+            .app { flex-direction: column; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--c-border); max-height: 40vh; }
+            .content-area { padding: 0 1rem 1rem; }
+            .banner h1 { font-size: 2rem; }
+            .feature-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useMemo, createContext, useContext, useReducer, useRef } = React;
+
+        // --- MOCK DATABASE & API ---
+        const mockDB = {
+            projects: [ { id: 1, title: 'Personal Website', description: 'Rebuilding my portfolio and blog.', created_date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), last_updated: new Date().toISOString() } ],
+            folders: [ { id: 1, project_id: 1, name: 'Design' }, { id: 2, project_id: 1, name: 'Development' } ],
+            pages: [ { id: 1, folder_id: 1, title: 'Moodboard', content: 'Collect inspiration and design ideas.' }, { id: 2, folder_id: 2, title: 'Component Library', content: 'List of React components to build.' } ],
+            tasks: [
+                 { id: 1, project_id: 1, title: 'Setup project structure', status: 'done', completed_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+                 { id: 2, project_id: 1, title: 'Create initial components', status: 'done', completed_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
+                 { id: 3, project_id: 1, title: 'Deploy to staging', status: 'inprogress', completed_at: null },
+                 { id: 4, project_id: 1, title: 'Write homepage content', status: 'todo', completed_at: null },
+                 { id: 5, project_id: 1, title: 'Design contact form', status: 'todo', completed_at: null },
+            ]
+        };
+
+        let projectIdCounter = mockDB.projects.length + 1;
+        let folderIdCounter = mockDB.folders.length + 1;
+        let pageIdCounter = mockDB.pages.length + 1;
+        let taskIdCounter = mockDB.tasks.length + 1;
+
+        const api = {
+            async get(endpoint) {
+                console.log(`[MOCK API] GET: ${endpoint}`);
+                await new Promise(resolve => setTimeout(resolve, 300));
+                const [_, primary, id, secondary] = endpoint.split('/');
+
+                if (primary === 'projects' && id && secondary === 'tasks') {
+                    return mockDB.tasks.filter(t => t.project_id === parseInt(id, 10));
+                }
+                if (primary === 'projects' && id) {
+                    const project = mockDB.projects.find(p => p.id === parseInt(id, 10));
+                    if (!project) return null;
+                    project.folders = mockDB.folders.filter(f => f.project_id === project.id).map(folder => ({
+                        ...folder,
+                        pages: mockDB.pages.filter(p => p.folder_id === folder.id)
+                    }));
+                    return project;
+                }
+                if (primary === 'projects') {
+                    return mockDB.projects;
+                }
+                return null;
+            },
+            async post(endpoint, data) {
+                 console.log(`[MOCK API] POST: ${endpoint}`, data);
+                await new Promise(resolve => setTimeout(resolve, 300));
+                if (endpoint === '/projects') {
+                    const newProject = { ...data, id: projectIdCounter++, created_date: new Date().toISOString(), last_updated: new Date().toISOString() };
+                    mockDB.projects.push(newProject);
+                    return newProject;
+                }
+                const taskMatch = endpoint.match(/\/projects\/(\d+)\/tasks/);
+                if (taskMatch) {
+                    const projectId = parseInt(taskMatch[1], 10);
+                    const newTask = { ...data, id: taskIdCounter++, project_id: projectId, status: 'todo', completed_at: null };
+                    mockDB.tasks.push(newTask);
+                    return newTask;
+                }
+                console.warn(`[MOCK API] Unhandled POST endpoint: ${endpoint}`);
+                return null;
+            },
+            async put(endpoint, data) {
+                console.log(`[MOCK API] PUT: ${endpoint}`, data);
+                await new Promise(resolve => setTimeout(resolve, 300));
+                const taskMatch = endpoint.match(/\/tasks\/(\d+)/);
+                if (taskMatch) {
+                    const taskId = parseInt(taskMatch[1], 10);
+                    const taskIndex = mockDB.tasks.findIndex(t => t.id === taskId);
+                    if (taskIndex !== -1) {
+                        const existingTask = mockDB.tasks[taskIndex];
+                        mockDB.tasks[taskIndex] = { ...existingTask, ...data };
+                        if (data.status === 'done' && existingTask.status !== 'done') mockDB.tasks[taskIndex].completed_at = new Date().toISOString();
+                        else if (data.status !== 'done') mockDB.tasks[taskIndex].completed_at = null;
+                        return mockDB.tasks[taskIndex];
+                    }
+                }
+                const pageMatch = endpoint.match(/\/pages\/(\d+)/);
+                if (pageMatch) {
+                    const pageId = parseInt(pageMatch[1], 10);
+                    const pageIndex = mockDB.pages.findIndex(p => p.id === pageId);
+                    if (pageIndex !== -1) {
+                         mockDB.pages[pageIndex] = { ...mockDB.pages[pageIndex], ...data };
+                         return mockDB.pages[pageIndex];
+                    }
+                }
+                console.warn(`[MOCK API] Unhandled PUT endpoint: ${endpoint}`);
+                return null;
+            },
+            async delete(endpoint) {
+                console.log(`[MOCK API] DELETE: ${endpoint}`);
+                await new Promise(resolve => setTimeout(resolve, 300));
+                const projectMatch = endpoint.match(/\/projects\/(\d+)/);
+                if (projectMatch) {
+                    const projectId = parseInt(projectMatch[1], 10);
+                    const projectFolders = mockDB.folders.filter(f => f.project_id === projectId);
+                    const projectFolderIds = projectFolders.map(f => f.id);
+                    mockDB.pages = mockDB.pages.filter(p => !projectFolderIds.includes(p.folder_id));
+                    mockDB.folders = mockDB.folders.filter(f => f.project_id !== projectId);
+                    mockDB.tasks = mockDB.tasks.filter(t => t.project_id !== projectId);
+                    const projectIndex = mockDB.projects.findIndex(p => p.id === projectId);
+                    if (projectIndex !== -1) {
+                        mockDB.projects.splice(projectIndex, 1);
+                        return { success: true };
+                    }
+                }
+                console.warn(`[MOCK API] Unhandled DELETE endpoint: ${endpoint}`);
+                return null;
+            },
+        };
+        
+        // --- AI SERVICE ---
+        const aiService = {
+            async _generateWithGemini(apiKey, prompt) {
+                const { GoogleGenAI } = window.generativeAI;
+                const ai = new GoogleGenAI({ apiKey });
+                const response = await ai.models.generateContent({
+                  model: "gemini-2.5-flash-preview-04-17",
+                  contents: prompt,
+                });
+                return response.text;
+            },
+            async _generateWithOpenAI(apiKey, model, prompt) {
+                const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }] })
+                });
+                if (!response.ok) throw new Error(`OpenAI API error: ${response.statusText}`);
+                const data = await response.json();
+                return data.choices[0]?.message?.content || "";
+            },
+            async _generateWithAnthropic(apiKey, model, prompt) {
+                const response = await fetch("https://api.anthropic.com/v1/messages", {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01'
+                    },
+                    body: JSON.stringify({ model, max_tokens: 1024, messages: [{ role: 'user', content: prompt }] })
+                });
+                if (!response.ok) throw new Error(`Anthropic API error: ${response.statusText}`);
+                const data = await response.json();
+                return data.content[0]?.text || "";
+            },
+            async _generateWithOllama(endpoint, model, prompt) {
+                const response = await fetch(`${endpoint}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model, prompt, stream: false })
+                });
+                if (!response.ok) throw new Error(`Ollama API error: ${response.statusText}`);
+                const data = await response.json();
+                return data.response || "";
+            },
+            async generate(settings, prompt) {
+                const { provider, geminiApiKey, openaiApiKey, openaiModel, anthropicApiKey, anthropicModel, ollamaEndpoint, ollamaModel } = settings;
+                switch(provider) {
+                    case 'gemini': if (!geminiApiKey) throw new Error("Google Gemini API Key is not set."); return this._generateWithGemini(geminiApiKey, prompt);
+                    case 'openai': if (!openaiApiKey || !openaiModel) throw new Error("OpenAI API Key or Model is not set."); return this._generateWithOpenAI(openaiApiKey, openaiModel, prompt);
+                    case 'anthropic': if (!anthropicApiKey || !anthropicModel) throw new Error("Anthropic API Key or Model is not set."); return this._generateWithAnthropic(anthropicApiKey, anthropicModel, prompt);
+                    case 'ollama': if (!ollamaEndpoint || !ollamaModel) throw new Error("Ollama endpoint or model is not set."); return this._generateWithOllama(ollamaEndpoint, ollamaModel, prompt);
+                    default: throw new Error("Invalid AI provider selected.");
+                }
+            }
+        };
+
+        // --- CONTEXT & HOOKS ---
+        const AccessibilityContext = createContext();
+
+        const accessibilityReducer = (state, action) => {
+          switch (action.type) {
+            case 'SET_STATE': return { ...state, ...action.payload };
+            case 'TOGGLE_REDUCED_MOTION': return { ...state, reduceMotion: !state.reduceMotion };
+            case 'TOGGLE_HIGH_CONTRAST': return { ...state, highContrast: !state.highContrast };
+            case 'SET_FONT_SIZE': return { ...state, fontSize: action.payload };
+            default: return state;
+          }
+        };
+
+        const AccessibilityProvider = ({ children }) => {
+            const initializer = () => {
+                try {
+                    const storedPrefs = localStorage.getItem('neuro-accessibility-prefs');
+                    const defaults = { reduceMotion: false, highContrast: false, fontSize: 'medium' };
+                    return storedPrefs ? { ...defaults, ...JSON.parse(storedPrefs) } : defaults;
+                } catch {
+                    return { reduceMotion: false, highContrast: false, fontSize: 'medium' };
+                }
+            };
+            const [state, dispatch] = useReducer(accessibilityReducer, initializer());
+            useEffect(() => {
+                localStorage.setItem('neuro-accessibility-prefs', JSON.stringify(state));
+            }, [state]);
+
+            return <AccessibilityContext.Provider value={{ accessibilityState: state, dispatchAccessibility: dispatch }}>{children}</AccessibilityContext.Provider>;
+        };
+        const useAccessibility = () => useContext(AccessibilityContext);
+
+        const useSettings = () => {
+            const initializer = useCallback(() => {
+                try {
+                    const stored = localStorage.getItem('neuro-settings');
+                    const defaults = {
+                        provider: 'gemini',
+                        geminiApiKey: '',
+                        openaiApiKey: '',
+                        openaiModel: 'gpt-4o-mini',
+                        anthropicApiKey: '',
+                        anthropicModel: 'claude-3-haiku-20240307',
+                        ollamaEndpoint: 'http://localhost:11434',
+                        ollamaModel: 'llama3'
+                    };
+                    return stored ? { ...defaults, ...JSON.parse(stored) } : defaults;
+                } catch {
+                    const defaults = {
+                        provider: 'gemini',
+                        geminiApiKey: '',
+                        openaiApiKey: '',
+                        openaiModel: 'gpt-4o-mini',
+                        anthropicApiKey: '',
+                        anthropicModel: 'claude-3-haiku-20240307',
+                        ollamaEndpoint: 'http://localhost:11434',
+                        ollamaModel: 'llama3'
+                    };
+                    return defaults;
+                }
+            }, []);
+
+            const [settings, setSettings] = useState(initializer);
+
+            const handleSaveSettings = (newSettings) => {
+                setSettings(newSettings);
+                localStorage.setItem('neuro-settings', JSON.stringify(newSettings));
+            };
+            return { settings, setSettings, handleSaveSettings };
+        };
+
+        // --- CORE UI COMPONENTS ---
+        const Banner = () => (
+            <div className="banner">
+                <h1>🧠 NeuroProject Manager</h1>
+                <p>AI-Powered Project Management for AuDHD</p>
+            </div>
+        );
+
+        const Message = ({ type, message, onClose }) => {
+            useEffect(() => {
+                const timer = setTimeout(onClose, 5000);
+                return () => clearTimeout(timer);
+            }, [onClose]);
+            return <div className={`${type}-message`}>{message} <button onClick={onClose} style={{background: 'none', border: 'none', color: 'inherit', float:'right', fontSize: '1.2rem', cursor: 'pointer'}}>&times;</button></div>;
+        };
+
+        const Modal = ({ isOpen, onClose, title, children }) => {
+            if (!isOpen) return null;
+            return ReactDOM.createPortal(
+                <div className="modal-backdrop" onClick={onClose}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>{title}</h2>
+                            <button onClick={onClose} className="modal-close-button">&times;</button>
+                        </div>
+                        {children}
+                    </div>
+                </div>,
+                document.body
+            );
+        };
+        
+        // --- MODAL COMPONENTS ---
+        const SettingsModal = ({ isOpen, onClose, currentSettings, onSave, project, onDeleteProject }) => {
+            const [settings, setSettings] = useState(currentSettings);
+            const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+            const [confirmText, setConfirmText] = useState('');
+            const { accessibilityState, dispatchAccessibility } = useAccessibility();
+
+            useEffect(() => { setSettings(currentSettings); }, [currentSettings]);
+            useEffect(() => { if (!isOpen) { setShowDeleteConfirm(false); setConfirmText(''); } }, [isOpen]);
+
+            const handleSave = () => { onSave(settings); onClose(); };
+            const handleConfirmDelete = () => { if (project && confirmText === project.title) onDeleteProject(project.id); };
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setSettings(prev => ({...prev, [name]: value}));
+            };
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="⚙️ Settings">
+                    {/* Accessibility Section */}
+                    <div className="form-group">
+                        <h3 style={{marginBottom: '1rem'}}>Accessibility</h3>
+                        <div className="toggle-switch">
+                            <label className="switch">
+                                <input type="checkbox" checked={accessibilityState.highContrast} onChange={() => dispatchAccessibility({ type: 'TOGGLE_HIGH_CONTRAST' })} />
+                                <span className="slider"></span>
+                            </label>
+                            <span>High Contrast Mode</span>
+                        </div>
+                        <div className="toggle-switch" style={{marginTop: '0.5rem'}}>
+                            <label className="switch">
+                                <input type="checkbox" checked={accessibilityState.reduceMotion} onChange={() => dispatchAccessibility({ type: 'TOGGLE_REDUCED_MOTION' })} />
+                                <span className="slider"></span>
+                            </label>
+                            <span>Reduce Motion</span>
+                        </div>
+                        <div className="form-group" style={{marginTop: '1rem'}}>
+                            <label className="form-label">Font Size</label>
+                            <select className="form-select" value={accessibilityState.fontSize} onChange={(e) => dispatchAccessibility({ type: 'SET_FONT_SIZE', payload: e.target.value })}>
+                                <option value="small">Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid var(--c-border)' }} />
+
+                    {/* AI Provider Section */}
+                    <h3 style={{marginBottom: '1rem'}}>AI Provider</h3>
+                    <div className="form-group">
+                        <label className="form-label">Provider</label>
+                        <select className="form-select" name="provider" value={settings.provider} onChange={handleChange}>
+                            <option value="gemini">Google Gemini</option>
+                            <option value="openai">OpenAI (ChatGPT)</option>
+                            <option value="anthropic">Anthropic (Claude)</option>
+                            <option value="ollama">Local LLM (Ollama)</option>
+                        </select>
+                    </div>
+                    {settings.provider === 'gemini' && (
+                        <div className="form-group">
+                            <label className="form-label">Gemini API Key</label>
+                            <input className="form-input" type="password" name="geminiApiKey" value={settings.geminiApiKey} onChange={handleChange} />
+                        </div>
+                    )}
+                    {settings.provider === 'openai' && (
+                        <>
+                            <div className="form-group">
+                                <label className="form-label">OpenAI API Key</label>
+                                <input className="form-input" type="password" name="openaiApiKey" value={settings.openaiApiKey} onChange={handleChange} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">OpenAI Model</label>
+                                <input className="form-input" type="text" name="openaiModel" value={settings.openaiModel} onChange={handleChange} />
+                            </div>
+                        </>
+                    )}
+                    {settings.provider === 'anthropic' && (
+                        <>
+                            <div className="form-group">
+                                <label className="form-label">Anthropic API Key</label>
+                                <input className="form-input" type="password" name="anthropicApiKey" value={settings.anthropicApiKey} onChange={handleChange} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Anthropic Model</label>
+                                <input className="form-input" type="text" name="anthropicModel" value={settings.anthropicModel} onChange={handleChange} />
+                            </div>
+                        </>
+                    )}
+                    {settings.provider === 'ollama' && (
+                        <>
+                            <div className="form-group">
+                                <label className="form-label">Ollama API Endpoint</label>
+                                <input className="form-input" type="text" name="ollamaEndpoint" value={settings.ollamaEndpoint} onChange={handleChange} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Ollama Model</label>
+                                <input className="form-input" type="text" name="ollamaModel" value={settings.ollamaModel} onChange={handleChange} />
+                            </div>
+                        </>
+                    )}
+
+                    {project && (
+                        <div className="danger-zone">
+                            <h3>Danger Zone</h3>
+                            <p>Deleting a project is permanent and cannot be undone.</p>
+                            {!showDeleteConfirm ? (
+                                <button className="btn btn-danger" onClick={() => setShowDeleteConfirm(true)}>Delete Project</button>
+                            ) : (
+                                <div>
+                                    <p>To confirm, please type the project title: <strong>{project.title}</strong></p>
+                                    <input className="form-input" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} />
+                                    <button className="btn btn-danger" style={{ marginTop: '0.5rem' }} disabled={confirmText !== project.title} onClick={handleConfirmDelete}>I understand, delete this project</button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '2rem' }}>
+                        <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                        <button className="btn btn-success" onClick={handleSave}>Save Settings</button>
+                    </div>
+                </Modal>
+            );
+        };
+
+        const AddTaskModal = ({ isOpen, onClose, onCreateTasks, project, settings }) => {
+            const [newTaskTitle, setNewTaskTitle] = useState('');
+            const [subtasks, setSubtasks] = useState([]);
+            const [isBreakingDown, setIsBreakingDown] = useState(false);
+            const [error, setError] = useState('');
+
+            const resetState = useCallback(() => {
+                setNewTaskTitle('');
+                setSubtasks([]);
+                setIsBreakingDown(false);
+                setError('');
+            }, []);
+            
+            useEffect(() => { if(isOpen) resetState() }, [isOpen, resetState]);
+
+            const handleBreakdown = async () => {
+                if (!newTaskTitle.trim()) return;
+                setIsBreakingDown(true);
+                setError('');
+                try {
+                    const prompt = `You are an AI assistant for a user with AuDHD. Break down the following high-level task into a simple checklist of smaller, concrete, actionable steps. Return the result as a JSON array of strings. Do not add any commentary. Task: "${newTaskTitle}"`;
+                    const responseText = await aiService.generate(settings, prompt);
+                    let jsonStr = responseText.trim().match(/```json\n?(.*?)\n?```/s)?.[1] || responseText;
+                    const parsed = JSON.parse(jsonStr);
+                    if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+                        setSubtasks(parsed.map((title, i) => ({ id: `sub_${i}`, title, checked: true })));
+                    } else { throw new Error("AI returned unexpected format."); }
+                } catch (e) {
+                    console.error("Failed to break down task", e);
+                    setError(`AI Assistant Error: ${e.message}`);
+                }
+                finally { setIsBreakingDown(false); }
+            }
+
+            const handleCreate = () => {
+                const checkedSubtasks = subtasks.filter(s => s.checked).map(s => ({ title: s.title }));
+                const tasksToCreate = newTaskTitle.trim() ? [{ title: newTaskTitle }, ...checkedSubtasks] : checkedSubtasks;
+                
+                if (tasksToCreate.length > 0) {
+                    onCreateTasks(tasksToCreate);
+                    onClose();
+                }
+            }
+
+            const handleSubtaskCheck = (id) => {
+                setSubtasks(current => current.map(s => s.id === id ? { ...s, checked: !s.checked } : s));
+            }
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="📝 Add New Task(s)">
+                    {error && <div className="error-message" style={{position: 'relative', bottom: 0, right: 0, marginBottom: '1rem'}}>{error}</div>}
+                    <div className="form-group">
+                        <label className="form-label">Task Title (or a big idea)</label>
+                        <input className="form-input" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder="e.g., Launch new website feature" autoFocus />
+                    </div>
+                    
+                    <button className="btn btn-secondary btn-small" onClick={handleBreakdown} disabled={isBreakingDown || !newTaskTitle.trim()}>
+                        {isBreakingDown ? 'Thinking...' : '✨ Break it down for me'}
+                    </button>
+
+                    {subtasks.length > 0 && (
+                        <div className="subtask-list" style={{marginTop: '1.5rem'}}>
+                            <p style={{marginBottom: '0.5rem', fontWeight: 500}}>Suggested sub-tasks (uncheck any you don't want):</p>
+                            {subtasks.map(subtask => (
+                                <div key={subtask.id} className="task-item">
+                                    <input type="checkbox" checked={subtask.checked} onChange={() => handleSubtaskCheck(subtask.id)} id={`subtask-${subtask.id}`} />
+                                    <label htmlFor={`subtask-${subtask.id}`} style={{flex: 1}}>{subtask.title}</label>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1.5rem' }}>
+                        <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                        <button className="btn btn-success" onClick={handleCreate} disabled={!newTaskTitle.trim() && subtasks.filter(s=>s.checked).length === 0}>Create Task(s)</button>
+                    </div>
+                </Modal>
+            )
+        }
+
+        // --- PAGE/VIEW COMPONENTS ---
+        const Sidebar = ({ projects, onSelectProject, selectedProject, onCreateProject, onSelectPage }) => {
+            const [newProjectTitle, setNewProjectTitle] = useState('');
+            const handleCreate = () => { if(newProjectTitle) { onCreateProject({title: newProjectTitle}); setNewProjectTitle(''); } };
+            
+            return (
+                <aside className="sidebar">
+                    <div className="sidebar-header">
+                        <h2>Projects</h2>
+                    </div>
+                    <div style={{display: 'flex', gap: '0.5rem', marginBottom: '1.5rem'}}>
+                        <input className="form-input" value={newProjectTitle} onChange={e => setNewProjectTitle(e.target.value)} placeholder="New project name" />
+                        <button className="btn btn-small" onClick={handleCreate}>Add</button>
+                    </div>
+
+                    <ul className="list">
+                        {projects.map(p => (
+                            <li key={p.id}>
+                                <div className={`list-item ${selectedProject?.id === p.id ? 'active' : ''}`} onClick={() => onSelectProject(p)}>
+                                    <span>{p.title}</span>
+                                </div>
+                                {selectedProject?.id === p.id && selectedProject.folders && (
+                                    <ul style={{paddingLeft: '1rem', marginTop: '0.5rem'}}>
+                                        {selectedProject.folders.map(folder => (
+                                            <li key={folder.id} className="folder">
+                                                <div className="list-item">📁 {folder.name}</div>
+                                                <ul style={{paddingLeft: '1rem'}}>
+                                                    {folder.pages.map(page => (
+                                                        <li key={page.id} className="page list-item" onClick={() => onSelectPage(page)}>
+                                                            📄 {page.title}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </aside>
+            );
+        };
+        const WelcomeScreen = () => (
+             <div className="welcome">
+                <h2>Welcome to NeuroProject Manager</h2>
+                <p>Your AI-powered assistant for clarity and focus. Select a project from the sidebar or create a new one to get started.</p>
+                <div className="feature-grid">
+                    <div className="feature-card">
+                        <h3>Brain Dump & Breakdown</h3>
+                        <p>Use the "Add Task" button to enter a big idea. Our AI will help break it down into small, manageable steps to avoid overwhelm.</p>
+                    </div>
+                    <div className="feature-card">
+                        <h3>Visual Tracking</h3>
+                        <p>Switch between a simple list and a visual Kanban board to see your progress in a way that makes sense to you.</p>
+                    </div>
+                    <div className="feature-card">
+                        <h3>AI-Powered Insights</h3>
+                        <p>Get gentle, encouraging summaries of your progress and suggestions for what to do next on the Progress Dashboard.</p>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const KanbanBoard = ({ tasks, onUpdateStatus }) => {
+            const columns = { todo: 'To Do', inprogress: 'In Progress', done: 'Done' };
+            const tasksByStatus = useMemo(() => {
+                return tasks.reduce((acc, task) => {
+                    acc[task.status] = [...(acc[task.status] || []), task];
+                    return acc;
+                }, {});
+            }, [tasks]);
+
+            const canMoveTo = (task, direction) => {
+                const statuses = ['todo', 'inprogress', 'done'];
+                const currentIndex = statuses.indexOf(task.status);
+                const newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+                return newIndex >= 0 && newIndex < statuses.length;
+            };
+            const moveTo = (task, direction) => {
+                const statuses = ['todo', 'inprogress', 'done'];
+                const currentIndex = statuses.indexOf(task.status);
+                const newStatus = statuses[direction === 'next' ? currentIndex + 1 : currentIndex - 1];
+                onUpdateStatus(task.id, newStatus);
+            };
+
+            return (
+                <div className="kanban-board">
+                    {Object.entries(columns).map(([statusKey, statusLabel]) => (
+                        <div key={statusKey} className="kanban-column">
+                            <h3 className="kanban-column-title">{statusLabel} ({tasksByStatus[statusKey]?.length || 0})</h3>
+                            {(tasksByStatus[statusKey] || []).map(task => (
+                                <div key={task.id} className="kanban-task-card">
+                                    <p>{task.title}</p>
+                                    <div className="kanban-task-actions">
+                                        <button className="btn btn-small btn-secondary" disabled={!canMoveTo(task, 'prev')} onClick={() => moveTo(task, 'prev')}>&lt;</button>
+                                        <button className="btn btn-small btn-secondary" disabled={!canMoveTo(task, 'next')} onClick={() => moveTo(task, 'next')}>&gt;</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+        
+        const TaskListView = ({ tasks, onUpdateStatus }) => (
+            <div className="task-list">
+                {tasks.map(task => (
+                    <div key={task.id} className="task-item">
+                        <input 
+                            type="checkbox"
+                            checked={task.status === 'done'}
+                            onChange={e => onUpdateStatus(task.id, e.target.checked ? 'done' : 'todo')}
+                        />
+                        <span className={task.status === 'done' ? 'completed' : ''}>{task.title}</span>
+                    </div>
+                ))}
+            </div>
+        );
+
+        const ProjectOverview = ({ project, tasks, view, setView, onUpdateTaskStatus, onAddTask, onCustomizeView, onViewProgress, onSettings }) => (
+            <div>
+                <div className="project-header">
+                    <div>
+                        <h1>{project.title}</h1>
+                        <p style={{color: 'var(--c-text-muted)'}}>{project.description}</p>
+                    </div>
+                </div>
+
+                <div className="card">
+                    <h3>🚀 Quick Actions</h3>
+                    <div className="action-group">
+                        <button className="btn" onClick={onAddTask}>📝 Add Task</button>
+                        <button className="btn btn-secondary" onClick={onViewProgress}>📈 View Progress</button>
+                        <button className="btn btn-secondary" onClick={onSettings}>⚙️ Settings</button>
+                        <div className="view-switcher">
+                            <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}>List</button>
+                            <button className={view === 'board' ? 'active' : ''} onClick={() => setView('board')}>Board</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="card">
+                    <h3>📋 Tasks</h3>
+                    {view === 'list' ? <TaskListView tasks={tasks} onUpdateStatus={onUpdateTaskStatus} /> : <KanbanBoard tasks={tasks} onUpdateStatus={onUpdateTaskStatus} />}
+                </div>
+            </div>
+        );
+
+        const ProgressDashboard = ({ project, tasks, onBack, settings }) => {
+            const [aiInsight, setAiInsight] = useState('');
+            const [isLoadingInsight, setIsLoadingInsight] = useState(false);
+            
+            const { completedList, progressPercentage, total, completed, stats } = useMemo(() => {
+                const totalTasks = tasks.length;
+                if(totalTasks === 0) return { completedList: [], progressPercentage: 0, total: 0, completed: 0, stats: { todo: 0, inprogress: 0, done: 0 } };
+                
+                const completedTasks = tasks.filter(t => t.status === 'done');
+                const taskStats = tasks.reduce((acc, task) => { acc[task.status] = (acc[task.status] || 0) + 1; return acc; }, { todo: 0, inprogress: 0, done: 0 });
+
+                return {
+                    total: totalTasks,
+                    completed: completedTasks.length,
+                    completedList: completedTasks.sort((a,b) => new Date(b.completed_at) - new Date(a.completed_at)).slice(0, 5),
+                    progressPercentage: (completedTasks.length / totalTasks) * 100,
+                    stats: taskStats
+                }
+            }, [tasks]);
+
+            const getAIInsight = useCallback(async () => {
+                setIsLoadingInsight(true);
+                try {
+                    const prompt = `You are a supportive, encouraging AI assistant for a user with AuDHD. Analyze the following project status and provide a short (2-3 sentences) summary. Focus on celebrating progress and suggesting a clear, simple next step. Avoid corporate jargon. Project: "${project.title}". Total Tasks: ${total}, Completed: ${completed}, In Progress: ${stats.inprogress}, To Do: ${stats.todo}. The user's goal is to feel empowered, not pressured.`;
+                    const insight = await aiService.generate(settings, prompt);
+                    setAiInsight(insight);
+                } catch(e) {
+                    console.error("Failed to get AI insight", e);
+                    setAiInsight("Could not generate an insight right now. That's okay, you're still making great progress!");
+                } finally {
+                    setIsLoadingInsight(false);
+                }
+            }, [project, total, completed, stats, settings]);
+            
+            useEffect(() => { getAIInsight() }, [getAIInsight]);
+
+            const BarChart = ({ data }) => {
+                const max = Math.max(...Object.values(data));
+                const colors = { todo: '#e57373', inprogress: '#6B8CAE', done: '#82C09A' };
+                return (
+                    <div className="bar-chart">
+                        {Object.entries(data).map(([key, value]) => (
+                            <div key={key} className="bar-chart-item">
+                                <span className="bar-chart-label">{key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                                <div className="bar-chart-bar-container">
+                                    <div className="bar-chart-bar" style={{ width: `${max > 0 ? (value / max) * 100 : 0}%`, backgroundColor: colors[key] }}>{value}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )
+            };
+
+            return (
+                 <div>
+                    <div className="progress-dashboard-header">
+                        <div>
+                            <h1>📈 Progress: {project.title}</h1>
+                            <p style={{color: 'var(--c-text-muted)'}}>A look at how far you've come.</p>
+                        </div>
+                        <button className="btn btn-secondary" onClick={onBack}>Back to Project</button>
+                    </div>
+
+                    <div className="card">
+                        <h3>Overall Progress ({completed} / {total} tasks)</h3>
+                        <div className="progress-bar-container">
+                            <div className="progress-bar-fill" style={{ width: `${progressPercentage}%` }}>{Math.round(progressPercentage)}%</div>
+                        </div>
+                    </div>
+
+                    <div className="progress-grid">
+                        <div className="card ai-insight-card">
+                            <h3>✨ AI Assistant Insight</h3>
+                            {isLoadingInsight ? <p>Thinking...</p> : <p>{aiInsight}</p>}
+                        </div>
+
+                        <div className="card">
+                            <h3>Task Breakdown</h3>
+                            <BarChart data={stats} />
+                        </div>
+
+                        <div className="card">
+                            <h3>🏆 Win Wall (Recently Completed)</h3>
+                            {completedList.length > 0 ? (
+                                <ul className="list">
+                                    {completedList.map(task => <li key={task.id} className="win-wall-item">✅ {task.title}</li>)}
+                                </ul>
+                            ) : (
+                                <p>No tasks completed yet. The first step is the biggest!</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const PageView = ({ page, onUpdatePage }) => {
+            const [content, setContent] = useState(page.content || '');
+            const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'typing', 'saving'
+            const timeoutRef = useRef(null);
+
+            useEffect(() => setContent(page.content || ''), [page]);
+            
+            const handleSave = useCallback(async (newPageContent) => {
+                setSaveStatus('saving');
+                await onUpdatePage(page.id, { content: newPageContent });
+                setSaveStatus('saved');
+            }, [page.id, onUpdatePage]);
+
+            const handleChange = (e) => {
+                const newContent = e.target.value;
+                setContent(newContent);
+                setSaveStatus('typing');
+                if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                timeoutRef.current = setTimeout(() => handleSave(newContent), 2000);
+            };
+
+            const getStatusText = () => {
+                switch(saveStatus) {
+                    case 'typing': return 'Typing...';
+                    case 'saving': return 'Saving...';
+                    case 'saved': return 'All changes saved.';
+                    default: return '';
+                }
+            }
+
+            return (
+                <div>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <h2>📄 {page.title}</h2>
+                        <span className="status-indicator">{getStatusText()}</span>
+                    </div>
+                    <hr style={{ margin: '1rem 0', border: 'none', borderTop: '1px solid var(--c-border)' }} />
+                    <div className="card">
+                        <textarea 
+                            className="form-textarea"
+                            value={content}
+                            onChange={handleChange}
+                            style={{minHeight: '400px', border: 'none', padding: 0, outline: 'none', boxShadow: 'none'}}
+                            placeholder="Start writing your notes here..."
+                        />
+                    </div>
+                </div>
+            );
+        };
+        
+        // --- MAIN APP COMPONENT ---
+        const App = () => {
+            const { accessibilityState } = useAccessibility();
+            const { settings, setSettings, handleSaveSettings } = useSettings();
+            
+            const [projects, setProjects] = useState([]);
+            const [selectedProject, setSelectedProject] = useState(null);
+            const [selectedPage, setSelectedPage] = useState(null);
+            const [tasks, setTasks] = useState([]);
+            const [view, setView] = useState('list'); // 'list' or 'board'
+            const [currentView, setCurrentView] = useState('welcome'); // 'welcome', 'project', 'progress'
+
+            const [loading, setLoading] = useState(true);
+            const [message, setMessage] = useState(null);
+            
+            const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+            const [showSettingsModal, setShowSettingsModal] = useState(false);
+            
+            const loadProjects = useCallback(async () => {
+                setLoading(true);
+                const fetchedProjects = await api.get('/projects');
+                setProjects(fetchedProjects);
+                setLoading(false);
+            }, []);
+
+            useEffect(() => {
+                loadProjects();
+            }, [loadProjects]);
+
+            const loadTasks = useCallback(async (projectId) => {
+                const fetchedTasks = await api.get(`/projects/${projectId}/tasks`);
+                setTasks(fetchedTasks);
+            }, []);
+
+            const handleSelectProject = useCallback(async (project) => {
+                setLoading(true);
+                setSelectedPage(null);
+                setCurrentView('project');
+                const fullProject = await api.get(`/projects/${project.id}`);
+                setSelectedProject(fullProject);
+                await loadTasks(project.id);
+                setLoading(false);
+            }, [loadTasks]);
+
+            const handleCreateProject = async (projectData) => {
+                setLoading(true);
+                const newProject = await api.post('/projects', projectData);
+                await loadProjects();
+                handleSelectProject(newProject);
+                setMessage({ type: 'success', text: 'Project created successfully!' });
+            };
+
+            const handleDeleteProject = async (projectId) => {
+                setLoading(true);
+                await api.delete(`/projects/${projectId}`);
+                await loadProjects();
+                setSelectedProject(null);
+                setCurrentView('welcome');
+                setShowSettingsModal(false);
+                setMessage({ type: 'success', text: 'Project deleted.' });
+                setLoading(false);
+            };
+
+            const handleUpdateTaskStatus = async (taskId, status) => {
+                setTasks(currentTasks => currentTasks.map(t => t.id === taskId ? {...t, status} : t));
+                await api.put(`/tasks/${taskId}`, { status });
+                await loadTasks(selectedProject.id); // Reload to get completed_at date
+            };
+
+            const handleCreateTasks = async (tasksToCreate) => {
+                if (!selectedProject) return;
+                setLoading(true);
+                const promises = tasksToCreate.map(task => api.post(`/projects/${selectedProject.id}/tasks`, { title: task.title }));
+                await Promise.all(promises);
+                setMessage({ type: 'success', text: `${tasksToCreate.length} task(s) created!` });
+                setShowAddTaskModal(false);
+                await loadTasks(selectedProject.id);
+                setLoading(false);
+            };
+
+            const handleUpdatePage = async (pageId, pageData) => {
+                await api.put(`/pages/${pageId}`, pageData);
+                // Optimistic update is in PageView state, but we can refresh project data if needed
+            };
+
+            const renderContent = () => {
+                if (loading && !selectedProject) return <p style={{textAlign: 'center', marginTop: '2rem'}}>Loading projects...</p>;
+
+                if (currentView === 'progress' && selectedProject) {
+                    return <ProgressDashboard project={selectedProject} tasks={tasks} onBack={() => setCurrentView('project')} settings={settings} />;
+                }
+                
+                if (selectedPage) return <PageView page={selectedPage} onUpdatePage={handleUpdatePage} />;
+
+                if (currentView === 'project' && selectedProject) {
+                    return (
+                        <ProjectOverview
+                            project={selectedProject}
+                            tasks={tasks}
+                            view={view}
+                            setView={setView}
+                            onUpdateTaskStatus={handleUpdateTaskStatus}
+                            onAddTask={() => setShowAddTaskModal(true)}
+                            onViewProgress={() => setCurrentView('progress')}
+                            onSettings={() => setShowSettingsModal(true)}
+                        />
+                    );
+                }
+
+                return <WelcomeScreen />;
+            };
+
+
+            return (
+                <div 
+                    className={`app ${loading ? 'loading' : ''}`}
+                    data-contrast={accessibilityState.highContrast ? 'high' : 'low'}
+                    data-motion={accessibilityState.reduceMotion ? 'reduced' : 'normal'}
+                    data-font-size={accessibilityState.fontSize}
+                >
+                    <Sidebar
+                        projects={projects}
+                        selectedProject={selectedProject}
+                        onSelectProject={handleSelectProject}
+                        onCreateProject={handleCreateProject}
+                        onSelectPage={(page) => {setSelectedPage(page); setCurrentView('project');}}
+                    />
+                    <main className="main-content">
+                        <Banner />
+                        <div className="content-area">
+                             {renderContent()}
+                        </div>
+                    </main>
+
+                    {message && <Message type={message.type} message={message.text} onClose={() => setMessage(null)} />}
+                    
+                    <AddTaskModal 
+                        isOpen={showAddTaskModal}
+                        onClose={() => setShowAddTaskModal(false)}
+                        onCreateTasks={handleCreateTasks}
+                        project={selectedProject}
+                        settings={settings}
+                    />
+
+                    <SettingsModal
+                        isOpen={showSettingsModal}
+                        onClose={() => setShowSettingsModal(false)}
+                        currentSettings={settings}
+                        onSave={handleSaveSettings}
+                        project={selectedProject}
+                        onDeleteProject={handleDeleteProject}
+                    />
+                </div>
+            );
+        };
+        
+        // --- ROOT COMPONENT ---
+        const Root = () => (
+            <AccessibilityProvider>
+                <App />
+            </AccessibilityProvider>
+        );
+
+        // --- RENDER APP ---
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Root />);
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
