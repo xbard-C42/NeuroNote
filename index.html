@@ -213,6 +213,9 @@
         .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--c-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-primary) 20%, transparent); }
         .form-textarea { min-height: 100px; resize: vertical; font-family: inherit; }
         .form-hint { font-size: 0.8rem; color: var(--c-text-muted); margin-top: 0.25rem; }
+        fieldset:disabled { opacity: 0.7; }
+        fieldset:disabled .form-hint { color: var(--c-text-muted); }
+        legend { padding: 0; }
 
         /* List Styles */
         .list { list-style: none; margin: 0; padding: 0; }
@@ -436,7 +439,6 @@
                 if (!window.generativeAI || !window.generativeAI.GoogleGenerativeAI) {
                     throw new Error("Google Generative AI SDK not loaded correctly.");
                 }
-                // Alias the class to adhere to coding standards while maintaining browser compatibility.
                 const { GoogleGenerativeAI: GoogleGenAI } = window.generativeAI;
                 const ai = new GoogleGenAI({ apiKey });
                 const response = await ai.models.generateContent({
@@ -479,7 +481,22 @@
                 const data = await response.json();
                 return data.response || "";
             },
-            async generate(settings, prompt) {
+            async generate(settings, prompt, sdk = null) {
+                if (sdk) {
+                    try {
+                        console.log('Requesting AI response from C42 Kernel...');
+                        const response = await sdk.request('generate_response', { topic: prompt });
+                        if (typeof response?.text !== 'string') {
+                            throw new Error("Kernel returned an invalid response format.");
+                        }
+                        return response.text;
+                    } catch (error) {
+                        console.error('C42 SDK request failed:', error);
+                        throw new Error(`Kernel Error: ${error.message}`);
+                    }
+                }
+
+                // Fallback to original logic if no SDK
                 const { provider, geminiApiKey, openaiApiKey, openaiModel, anthropicApiKey, anthropicModel, ollamaEndpoint, ollamaModel } = settings;
                 switch(provider) {
                     case 'gemini': if (!geminiApiKey) throw new Error("Google Gemini API Key is not set."); return this._generateWithGemini(geminiApiKey, prompt);
@@ -632,7 +649,7 @@
         };
         
         // --- MODAL COMPONENTS ---
-        const SettingsModal = ({ isOpen, onClose, currentSettings, onSave, project, onDeleteProject }) => {
+        const SettingsModal = ({ isOpen, onClose, currentSettings, onSave, project, onDeleteProject, isC42Environment }) => {
             const [settings, setSettings] = useState(currentSettings);
             const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
             const [confirmText, setConfirmText] = useState('');
@@ -690,58 +707,63 @@
                     <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid var(--c-border)' }} />
 
                     {/* AI Provider Section */}
-                    <h3 style={{marginBottom: '1rem'}}>AI Provider</h3>
-                    <div className="form-group">
-                        <label className="form-label">Provider</label>
-                        <select className="form-select" name="provider" value={settings.provider} onChange={handleChange}>
-                            <option value="gemini">Google Gemini</option>
-                            <option value="openai">OpenAI (ChatGPT)</option>
-                            <option value="anthropic">Anthropic (Claude)</option>
-                            <option value="ollama">Local LLM (Ollama)</option>
-                        </select>
-                    </div>
-                    {settings.provider === 'gemini' && (
+                    <fieldset disabled={isC42Environment}>
+                         <legend style={{padding:0, width:'100%', float:'left', marginBottom: '1rem'}}><h3 style={{marginBottom: 0}}>AI Provider</h3></legend>
+                        {isC42Environment && (
+                            <p className="form-hint" style={{marginBottom: '1rem', marginTop: 0}}>AI settings are managed by the C42 OS environment and cannot be changed here.</p>
+                        )}
                         <div className="form-group">
-                            <label className="form-label">Gemini API Key</label>
-                            <input className="form-input" type="password" name="geminiApiKey" value={settings.geminiApiKey} onChange={handleChange} />
+                            <label className="form-label">Provider</label>
+                            <select className="form-select" name="provider" value={settings.provider} onChange={handleChange}>
+                                <option value="gemini">Google Gemini</option>
+                                <option value="openai">OpenAI (ChatGPT)</option>
+                                <option value="anthropic">Anthropic (Claude)</option>
+                                <option value="ollama">Local LLM (Ollama)</option>
+                            </select>
                         </div>
-                    )}
-                    {settings.provider === 'openai' && (
-                        <>
+                        {settings.provider === 'gemini' && (
                             <div className="form-group">
-                                <label className="form-label">OpenAI API Key</label>
-                                <input className="form-input" type="password" name="openaiApiKey" value={settings.openaiApiKey} onChange={handleChange} />
+                                <label className="form-label">Gemini API Key</label>
+                                <input className="form-input" type="password" name="geminiApiKey" value={settings.geminiApiKey} onChange={handleChange} />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">OpenAI Model</label>
-                                <input className="form-input" type="text" name="openaiModel" value={settings.openaiModel} onChange={handleChange} />
-                            </div>
-                        </>
-                    )}
-                    {settings.provider === 'anthropic' && (
-                        <>
-                            <div className="form-group">
-                                <label className="form-label">Anthropic API Key</label>
-                                <input className="form-input" type="password" name="anthropicApiKey" value={settings.anthropicApiKey} onChange={handleChange} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Anthropic Model</label>
-                                <input className="form-input" type="text" name="anthropicModel" value={settings.anthropicModel} onChange={handleChange} />
-                            </div>
-                        </>
-                    )}
-                    {settings.provider === 'ollama' && (
-                        <>
-                            <div className="form-group">
-                                <label className="form-label">Ollama API Endpoint</label>
-                                <input className="form-input" type="text" name="ollamaEndpoint" value={settings.ollamaEndpoint} onChange={handleChange} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Ollama Model</label>
-                                <input className="form-input" type="text" name="ollamaModel" value={settings.ollamaModel} onChange={handleChange} />
-                            </div>
-                        </>
-                    )}
+                        )}
+                        {settings.provider === 'openai' && (
+                            <>
+                                <div className="form-group">
+                                    <label className="form-label">OpenAI API Key</label>
+                                    <input className="form-input" type="password" name="openaiApiKey" value={settings.openaiApiKey} onChange={handleChange} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">OpenAI Model</label>
+                                    <input className="form-input" type="text" name="openaiModel" value={settings.openaiModel} onChange={handleChange} />
+                                </div>
+                            </>
+                        )}
+                        {settings.provider === 'anthropic' && (
+                            <>
+                                <div className="form-group">
+                                    <label className="form-label">Anthropic API Key</label>
+                                    <input className="form-input" type="password" name="anthropicApiKey" value={settings.anthropicApiKey} onChange={handleChange} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Anthropic Model</label>
+                                    <input className="form-input" type="text" name="anthropicModel" value={settings.anthropicModel} onChange={handleChange} />
+                                </div>
+                            </>
+                        )}
+                        {settings.provider === 'ollama' && (
+                            <>
+                                <div className="form-group">
+                                    <label className="form-label">Ollama API Endpoint</label>
+                                    <input className="form-input" type="text" name="ollamaEndpoint" value={settings.ollamaEndpoint} onChange={handleChange} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Ollama Model</label>
+                                    <input className="form-input" type="text" name="ollamaModel" value={settings.ollamaModel} onChange={handleChange} />
+                                </div>
+                            </>
+                        )}
+                    </fieldset>
 
                     {project && (
                         <div className="danger-zone">
@@ -767,7 +789,7 @@
             );
         };
 
-        const AddTaskModal = ({ isOpen, onClose, onCreateTasks, project, settings }) => {
+        const AddTaskModal = ({ isOpen, onClose, onCreateTasks, project, settings, c42Sdk }) => {
             const [newTaskTitle, setNewTaskTitle] = useState('');
             const [subtasks, setSubtasks] = useState([]);
             const [isBreakingDown, setIsBreakingDown] = useState(false);
@@ -788,7 +810,7 @@
                 setError('');
                 try {
                     const prompt = `You are an AI assistant for a user with AuDHD. Break down the following high-level task into a simple checklist of smaller, concrete, actionable steps. Return the result as a JSON array of strings. Do not add any commentary. Task: "${newTaskTitle}"`;
-                    const responseText = await aiService.generate(settings, prompt);
+                    const responseText = await aiService.generate(settings, prompt, c42Sdk);
                     let jsonStr = responseText.trim().match(/```json\n?(.*?)\n?```/s)?.[1] || responseText;
                     const parsed = JSON.parse(jsonStr);
                     if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
@@ -1108,7 +1130,7 @@
             </div>
         );
 
-        const ProgressDashboard = ({ project, tasks, onBack, settings }) => {
+        const ProgressDashboard = ({ project, tasks, onBack, settings, c42Sdk }) => {
             const [aiInsight, setAiInsight] = useState('');
             const [isLoadingInsight, setIsLoadingInsight] = useState(false);
             
@@ -1132,7 +1154,7 @@
                 setIsLoadingInsight(true);
                 try {
                     const prompt = `You are a supportive, encouraging AI assistant for a user with AuDHD. Analyze the following project status and provide a short (2-3 sentences) summary. Focus on celebrating progress and suggesting a clear, simple next step. Avoid corporate jargon. Project: "${project.title}". Total Tasks: ${total}, Completed: ${completed}, In Progress: ${stats.inprogress}, To Do: ${stats.todo}. The user's goal is to feel empowered, not pressured.`;
-                    const insight = await aiService.generate(settings, prompt);
+                    const insight = await aiService.generate(settings, prompt, c42Sdk);
                     setAiInsight(insight);
                 } catch(e) {
                     console.error("Failed to get AI insight", e);
@@ -1140,7 +1162,7 @@
                 } finally {
                     setIsLoadingInsight(false);
                 }
-            }, [project, total, completed, stats, settings]);
+            }, [project, total, completed, stats, settings, c42Sdk]);
             
             useEffect(() => { getAIInsight() }, [getAIInsight]);
 
@@ -1256,7 +1278,7 @@
         
         // --- MAIN APP COMPONENT ---
         const App = () => {
-            const { accessibilityState } = useAccessibility();
+            const { accessibilityState, dispatchAccessibility } = useAccessibility();
             const { settings, setSettings, handleSaveSettings } = useSettings();
             
             const [projects, setProjects] = useState([]);
@@ -1269,9 +1291,34 @@
             const [loading, setLoading] = useState(true);
             const [message, setMessage] = useState(null);
             
+            const [c42, setC42] = useState({ isC42Environment: false, sdk: null });
             const [showAddTaskModal, setShowAddTaskModal] = useState(false);
             const [showSettingsModal, setShowSettingsModal] = useState(false);
             const [showGithubImportModal, setShowGithubImportModal] = useState(false);
+
+            useEffect(() => {
+                // C42 SDK Detection and subscription, as per documentation
+                setTimeout(() => {
+                    if (window.C42_SDK) {
+                        console.log('C42 SDK Detected. Version:', window.C42_SDK.version);
+                        const sdk = window.C42_SDK;
+                        setC42({ isC42Environment: true, sdk });
+
+                        // Sync theme with host OS
+                        sdk.subscribe('theme_change', (theme) => {
+                            console.log('C42 theme changed to:', theme);
+                            // Map 'dark' theme to 'highContrast' mode as a reasonable integration point.
+                            dispatchAccessibility({ type: 'SET_STATE', payload: { highContrast: theme === 'dark' } });
+                        });
+                        
+                        // TODO: Subscribe to language changes when i18n is implemented
+                        // sdk.subscribe('language_change', (lang) => { ... });
+
+                    } else {
+                        console.warn('C42 SDK not found. Running in standalone mode.');
+                    }
+                }, 50);
+            }, [dispatchAccessibility]);
             
             const loadProjects = useCallback(async () => {
                 setLoading(true);
@@ -1360,7 +1407,7 @@
                 if (loading && !selectedProject) return <p style={{textAlign: 'center', marginTop: '2rem'}}>Loading projects...</p>;
 
                 if (currentView === 'progress' && selectedProject) {
-                    return <ProgressDashboard project={selectedProject} tasks={tasks} onBack={() => setCurrentView('project')} settings={settings} />;
+                    return <ProgressDashboard project={selectedProject} tasks={tasks} onBack={() => setCurrentView('project')} settings={settings} c42Sdk={c42.sdk} />;
                 }
                 
                 if (selectedPage) return <PageView page={selectedPage} onUpdatePage={handleUpdatePage} />;
@@ -1414,6 +1461,7 @@
                         onCreateTasks={handleCreateTasks}
                         project={selectedProject}
                         settings={settings}
+                        c42Sdk={c42.sdk}
                     />
 
                     <SettingsModal
@@ -1423,6 +1471,7 @@
                         onSave={handleSaveSettings}
                         project={selectedProject}
                         onDeleteProject={handleDeleteProject}
+                        isC42Environment={c42.isC42Environment}
                     />
 
                     <GithubImportModal
