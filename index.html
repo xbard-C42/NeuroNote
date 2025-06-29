@@ -17,20 +17,21 @@
 
     <style>
         :root {
-            --c-primary: #6B8CAE; /* Muted Blue */
-            --c-primary-hover: #597d9e;
+            /* Dark theme by default */
+            --c-primary: #38bdf8; /* Light Blue for dark bg */
+            --c-primary-hover: #0ea5e9;
             --c-secondary: #8a8a8a;
             --c-secondary-hover: #6c6c6c;
-            --c-success: #82C09A; /* Soft Green */
-            --c-success-hover: #69a380;
-            --c-danger: #e57373;
-            --c-danger-hover: #d32f2f;
-            --c-text: #1e293b;
-            --c-text-muted: #6b7280;
-            --c-bg: #f8fafc;
-            --c-bg-alt: #f1f5f9;
-            --c-bg-card: #ffffff;
-            --c-border: #e2e8f0;
+            --c-success: #4ade80; /* Bright Green */
+            --c-success-hover: #22c55e;
+            --c-danger: #fb7185; /* Bright Pink/Red */
+            --c-danger-hover: #f43f5e;
+            --c-text: #f3f4f6; /* gray-100 */
+            --c-text-muted: #9ca3af; /* gray-400 */
+            --c-bg: #030712;
+            --c-bg-alt: #1f2937; /* gray-800 */
+            --c-bg-card: #111827; /* gray-900 */
+            --c-border: #374151; /* gray-700 */
             --c-focus: #fbbf24;
             --font-size: 16px;
         }
@@ -50,16 +51,21 @@
         }
 
         [data-contrast="high"] {
-            --c-bg: #000000;
-            --c-bg-card: #111111;
-            --c-bg-alt: #222222;
-            --c-text: #ffffff;
-            --c-text-muted: #cccccc;
-            --c-border: #555555;
-            --c-primary: #38bdf8;
-            --c-primary-hover: #0ea5e9;
-            --c-success: #4ade80;
-            --c-danger: #fb7185;
+            /* Light theme for toggle */
+            --c-primary: #6B8CAE; /* Muted Blue */
+            --c-primary-hover: #597d9e;
+            --c-secondary: #8a8a8a;
+            --c-secondary-hover: #6c6c6c;
+            --c-success: #82C09A; /* Soft Green */
+            --c-success-hover: #69a380;
+            --c-danger: #e57373;
+            --c-danger-hover: #d32f2f;
+            --c-text: #1e293b;
+            --c-text-muted: #6b7280;
+            --c-bg: #f8fafc;
+            --c-bg-alt: #f1f5f9;
+            --c-bg-card: #ffffff;
+            --c-border: #e2e8f0;
         }
         
         [data-motion="reduced"] * {
@@ -114,7 +120,7 @@
         }
 
         .sidebar h2 {
-            color: #475569;
+            color: var(--c-text-muted);
             margin-bottom: 1.5rem;
             font-size: 1.3rem;
         }
@@ -195,7 +201,7 @@
         .btn-danger { background-color: var(--c-danger); }
         .btn-danger:hover:not(:disabled) { background-color: var(--c-danger-hover); }
         .btn-small { padding: 0.5rem 1rem; font-size: 0.875rem; }
-        .btn:disabled { background-color: #d1d5db; cursor: not-allowed; }
+        .btn:disabled { background-color: var(--c-bg-alt); color: var(--c-text-muted); cursor: not-allowed; opacity: 0.6; }
 
         /* Form Styles */
         .form-group { margin-bottom: 1rem; }
@@ -257,15 +263,15 @@
         /* Kanban Board Styles */
         .kanban-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; align-items: start; }
         .kanban-column { background: var(--c-bg-alt); border-radius: 8px; padding: 1rem; height: 100%; }
-        .kanban-column-title { font-weight: 600; color: #475569; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--c-border); }
+        .kanban-column-title { font-weight: 600; color: var(--c-text-muted); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--c-border); }
         .kanban-task-card { background: var(--c-bg-card); padding: 1rem; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 0.75rem; }
         .kanban-task-card p { margin-bottom: 0.75rem; }
         .kanban-task-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
         
         /* Quick Actions */
         .action-group { display: flex; gap: 1rem; flex-wrap: wrap; }
-        .view-switcher { display: inline-flex; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden; }
-        .view-switcher button { background: var(--c-bg-card); color: var(--c-text); border: none; padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.2s; border-left: 1px solid #d1d5db; margin: 0; border-radius: 0; }
+        .view-switcher { display: inline-flex; border: 1px solid var(--c-border); border-radius: 8px; overflow: hidden; }
+        .view-switcher button { background: var(--c-bg-card); color: var(--c-text); border: none; padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.2s; border-left: 1px solid var(--c-border); margin: 0; border-radius: 0; }
         .view-switcher button:first-child { border-left: none; }
         .view-switcher button:hover { background: var(--c-bg-alt); }
         .view-switcher button.active { background: color-mix(in srgb, var(--c-primary) 15%, transparent); color: var(--c-primary); font-weight: 600; }
@@ -275,7 +281,7 @@
         .progress-bar-container { width: 100%; background-color: var(--c-border); border-radius: 8px; height: 20px; overflow: hidden; margin-bottom: 0.5rem; }
         .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--c-primary), color-mix(in srgb, var(--c-primary) 70%, white)); border-radius: 8px; transition: width 0.5s ease-in-out; text-align: right; color: white; font-size: 12px; line-height: 20px; padding-right: 8px; }
         .progress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
-        .ai-insight-card { background: linear-gradient(135deg, color-mix(in srgb, var(--c-primary) 10%, white), color-mix(in srgb, var(--c-success) 10%, white)); border-left: 4px solid var(--c-primary); }
+        .ai-insight-card { background: linear-gradient(135deg, color-mix(in srgb, var(--c-primary) 10%, var(--c-bg-card)), color-mix(in srgb, var(--c-success) 10%, var(--c-bg-card))); border-left: 4px solid var(--c-primary); }
         .ai-insight-card h3 { color: var(--c-primary); }
         .win-wall-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: color-mix(in srgb, var(--c-success) 15%, transparent); border-radius: 6px; margin-bottom: 0.5rem; color: var(--c-success-hover); }
         
@@ -285,6 +291,10 @@
         .bar-chart-label { flex-shrink: 0; width: 80px; font-size: 0.875rem; color: var(--c-text-muted); }
         .bar-chart-bar-container { flex-grow: 1; background: var(--c-border); border-radius: 4px; }
         .bar-chart-bar { height: 20px; border-radius: 4px; transition: width 0.5s ease-in-out; display: flex; align-items: center; justify-content: flex-end; color: white; font-size: 12px; padding-right: 6px; }
+        .bar-chart-bar-todo { background-color: var(--c-danger); }
+        .bar-chart-bar-inprogress { background-color: var(--c-primary); }
+        .bar-chart-bar-done { background-color: var(--c-success); }
+
 
         /* Danger Zone */
         .danger-zone { border: 2px solid var(--c-danger); border-radius: 8px; padding: 1rem; margin-top: 1.5rem; background-color: color-mix(in srgb, var(--c-danger) 10%, transparent); }
@@ -296,7 +306,7 @@
         .toggle-switch label { font-weight: normal; }
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--c-border); transition: .4s; border-radius: 24px; }
         .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--c-primary); }
         input:focus + .slider { box-shadow: 0 0 1px var(--c-primary); }
@@ -304,8 +314,22 @@
 
         /* General Styles */
         .loading { opacity: 0.6; pointer-events: none; }
-        .success-message { position: fixed; bottom: 20px; right: 20px; background: #d1fae5; color: #065f46; padding: 0.75rem 1rem; border-radius: 6px; border-left: 4px solid #10b981; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1001; }
-        .error-message { position: fixed; bottom: 20px; right: 20px; background: #fee2e2; color: #991b1b; padding: 0.75rem 1rem; border-radius: 6px; border-left: 4px solid #ef4444; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1001;}
+        .success-message {
+            position: fixed; bottom: 20px; right: 20px;
+            background: color-mix(in srgb, var(--c-success) 20%, var(--c-bg-card));
+            color: var(--c-text);
+            padding: 0.75rem 1rem; border-radius: 6px;
+            border-left: 4px solid var(--c-success);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1001;
+        }
+        .error-message {
+            position: fixed; bottom: 20px; right: 20px;
+            background: color-mix(in srgb, var(--c-danger) 20%, var(--c-bg-card));
+            color: var(--c-text);
+            padding: 0.75rem 1rem; border-radius: 6px;
+            border-left: 4px solid var(--c-danger);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1001;
+        }
         .status-indicator { font-size: 0.8rem; color: var(--c-text-muted); font-style: italic; }
 
         @media (max-width: 768px) {
@@ -316,6 +340,15 @@
             .feature-grid { grid-template-columns: 1fr; }
         }
     </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/"
+  }
+}
+</script>
 <link rel="stylesheet" href="/index.css">
 </head>
 <body>
@@ -675,7 +708,7 @@
                                 <input type="checkbox" checked={accessibilityState.highContrast} onChange={() => dispatchAccessibility({ type: 'TOGGLE_HIGH_CONTRAST' })} />
                                 <span className="slider"></span>
                             </label>
-                            <span>High Contrast Mode</span>
+                            <span>Light Mode</span>
                         </div>
                         <div className="toggle-switch" style={{marginTop: '0.5rem'}}>
                             <label className="switch">
@@ -1168,14 +1201,13 @@
 
             const BarChart = ({ data }) => {
                 const max = Math.max(...Object.values(data));
-                const colors = { todo: '#e57373', inprogress: '#6B8CAE', done: '#82C09A' };
                 return (
                     <div className="bar-chart">
                         {Object.entries(data).map(([key, value]) => (
                             <div key={key} className="bar-chart-item">
                                 <span className="bar-chart-label">{key.charAt(0).toUpperCase() + key.slice(1)}</span>
                                 <div className="bar-chart-bar-container">
-                                    <div className="bar-chart-bar" style={{ width: `${max > 0 ? (value / max) * 100 : 0}%`, backgroundColor: colors[key] }}>{value}</div>
+                                    <div className={`bar-chart-bar bar-chart-bar-${key}`} style={{ width: `${max > 0 ? (value / max) * 100 : 0}%` }}>{value}</div>
                                 </div>
                             </div>
                         ))}
@@ -1307,8 +1339,8 @@
                         // Sync theme with host OS
                         sdk.subscribe('theme_change', (theme) => {
                             console.log('C42 theme changed to:', theme);
-                            // Map 'dark' theme to 'highContrast' mode as a reasonable integration point.
-                            dispatchAccessibility({ type: 'SET_STATE', payload: { highContrast: theme === 'dark' } });
+                            // Map 'dark' theme to 'highContrast' mode being false (our dark theme).
+                            dispatchAccessibility({ type: 'SET_STATE', payload: { highContrast: theme !== 'dark' } });
                         });
                         
                         // TODO: Subscribe to language changes when i18n is implemented
