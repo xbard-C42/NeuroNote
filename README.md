@@ -47,6 +47,53 @@ The application is now ready to use!
     *   Direct REST API calls for OpenAI, Anthropic, and Ollama
 *   **Persistence**: Browser `localStorage` is used to save settings and accessibility preferences. The project data is currently stored in a mock database in memory.
 
+C42 OS Proprietary License v1.0
+
+Copyright (c) 2024 [Your Name/Company]
+
+IMPORTANT: This software is proprietary and commercially licensed.
+
+1. GRANT OF RIGHTS
+   Subject to the terms of this license, you are granted a non-exclusive, 
+   non-transferable right to:
+   a) Use this software for personal evaluation purposes only
+   b) View and study the source code for educational purposes only
+
+2. RESTRICTIONS
+   You may NOT:
+   a) Use this software for any commercial purposes
+   b) Distribute, sublicense, or sell copies of this software
+   c) Modify, adapt, or create derivative works
+   d) Remove or alter any proprietary notices
+   e) Reverse engineer (except as permitted by law)
+
+3. RESERVATION OF RIGHTS
+   All rights not expressly granted are reserved. This includes but is not 
+   limited to patents, trademarks, copyrights, and trade secrets.
+
+4. COMMERCIAL LICENSING
+   Commercial use requires a separate commercial license. 
+   Contact: licensing@c42os.com
+
+5. FUTURE OPEN SOURCE TRANSITION
+   The copyright holder reserves the right to release future versions 
+   under open source licenses at their sole discretion.
+
+6. NO WARRANTY
+   This software is provided "AS IS" without warranty of any kind.
+
+7. LIMITATION OF LIABILITY
+   In no event shall the copyright holder be liable for any damages.
+
+8. TERMINATION
+   This license terminates automatically if you breach any terms.
+
+For commercial licensing inquiries: licensing@c42os.com
+For other questions: legal@c42os.com
+
+This license protects the investment in revolutionary consciousness 
+computing research while preserving the option for future open source 
+contribution to humanity.
 
 ## 🤝 Contributing
 
