@@ -16,7 +16,7 @@ These colors are defined in `tailwind.config` and should be used for consistency
 | Color Name   | Hex/RGBA                            | Tailwind Class                | Light Mode Usage                   | Dark Mode Usage                      |
 | :----------- | :---------------------------------- | :---------------------------- | :--------------------------------- | :----------------------------------- |
 | **UI**       |                                     |                               |                                    |                                      |
-| BG           | `#F9FAFB`                           | `bg-gray-50`                  | Main background                    | `#030712`                                |
+| BG           | `#F9FAFB`                           | `bg-gray-50`                  | Main background                    | `N/A`                                |
 | Card BG      | `#FFFFFF`                           | `bg-white`                    | Card surfaces                      | `N/A`                                |
 | Text Primary | `#111827`                           | `text-gray-900`               | Headings                           | `N/A`                                |
 | Text Secondary| `#374151`                          | `text-gray-700`               | Body copy, descriptions            | `N/A`                                |
