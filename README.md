@@ -49,12 +49,53 @@ The application is now ready to use!
 
 ## 💼 Licensing & Business Model
 
-This project uses an **Open Core** model.
+C42 OS Proprietary License v1.0
 
-*   **The Core Application**: The fundamental features of this application are open-source under the **Apache License 2.0**. We believe the core tools for cognitive accessibility should be transparent and available to the community. You are free to inspect, modify, and self-host this core version.
-*   **Future "Pro" Features**: We plan to develop advanced, proprietary features (such as team collaboration, advanced integrations, and premium AI capabilities) that will be available as part of a future paid SaaS offering.
+Copyright (c) 2024 [Your Name/Company]
 
-This model allows us to build a sustainable business while fostering an open and trusting relationship with our user community.
+IMPORTANT: This software is proprietary and commercially licensed.
+
+1. GRANT OF RIGHTS
+   Subject to the terms of this license, you are granted a non-exclusive, 
+   non-transferable right to:
+   a) Use this software for personal evaluation purposes only
+   b) View and study the source code for educational purposes only
+
+2. RESTRICTIONS
+   You may NOT:
+   a) Use this software for any commercial purposes
+   b) Distribute, sublicense, or sell copies of this software
+   c) Modify, adapt, or create derivative works
+   d) Remove or alter any proprietary notices
+   e) Reverse engineer (except as permitted by law)
+
+3. RESERVATION OF RIGHTS
+   All rights not expressly granted are reserved. This includes but is not 
+   limited to patents, trademarks, copyrights, and trade secrets.
+
+4. COMMERCIAL LICENSING
+   Commercial use requires a separate commercial license. 
+   Contact: licensing@c42os.com
+
+5. FUTURE OPEN SOURCE TRANSITION
+   The copyright holder reserves the right to release future versions 
+   under open source licenses at their sole discretion.
+
+6. NO WARRANTY
+   This software is provided "AS IS" without warranty of any kind.
+
+7. LIMITATION OF LIABILITY
+   In no event shall the copyright holder be liable for any damages.
+
+8. TERMINATION
+   This license terminates automatically if you breach any terms.
+
+For commercial licensing inquiries: licensing@c42os.com
+For other questions: legal@c42os.com
+
+This license protects the investment in revolutionary consciousness 
+computing research while preserving the option for future open source 
+contribution to humanity.
 
 ## 🤝 Contributing
 
