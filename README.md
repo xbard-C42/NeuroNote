@@ -49,7 +49,7 @@ The application is now ready to use!
 
 C42 OS Proprietary License v1.0
 
-Copyright (c) 2024 [Your Name/Company]
+Copyright (c) 2024 xbard
 
 IMPORTANT: This software is proprietary and commercially licensed.
 
