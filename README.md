@@ -24,19 +24,7 @@ This tool isn't just another task manager. It's a focused environment built on p
 
 ## 🚀 Getting Started
 
-This project is currently a self-contained, single-file web application. No complex setup is required.
-
-1.  **Download the Code**: Clone this repository or download the `index.html` file.
-2.  **Open in Browser**: Open the `index.html` file directly in a modern web browser (like Chrome, Firefox, or Edge).
-3.  **Configure AI (Required for AI features)**:
-    *   Click the **"Add"** button to create your first project.
-    *   Once a project is selected, click the **"⚙️ Settings"** button.
-    *   Navigate to the **AI Provider** section.
-    *   Select your desired provider (e.g., Gemini, OpenAI, Ollama).
-    *   Enter the required API keys or endpoint information.
-    *   Click **"Save Settings"**.
-
-The application is now ready to use!
+This project is currently in active development. Expect issues.
 
 ## 🛠️ Technology Stack
 
