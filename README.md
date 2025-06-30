@@ -47,14 +47,6 @@ The application is now ready to use!
     *   Direct REST API calls for OpenAI, Anthropic, and Ollama
 *   **Persistence**: Browser `localStorage` is used to save settings and accessibility preferences. The project data is currently stored in a mock database in memory.
 
-## 💼 Licensing & Business Model
-
-This project uses an **Open Core** model.
-
-*   **The Core Application**: The fundamental features of this application are open-source under the **Apache License 2.0**. We believe the core tools for cognitive accessibility should be transparent and available to the community. You are free to inspect, modify, and self-host this core version.
-*   **Future "Pro" Features**: We plan to develop advanced, proprietary features (such as team collaboration, advanced integrations, and premium AI capabilities) that will be available as part of a future paid SaaS offering.
-
-This model allows us to build a sustainable business while fostering an open and trusting relationship with our user community.
 
 ## 🤝 Contributing
 
